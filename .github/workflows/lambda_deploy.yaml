@@ -70,10 +70,9 @@ jobs:
         run: |
           cd ${{ inputs.lambda_dir }}
           npm ci
-          zip -r ../lambda.zip .
+          zip -r /lambda.zip .
           ls -al
-          cd ..
-          ls -al
+          ls -al /
 
       - name: Install dependencies and package Python Lambda
         if: env.runtime == 'python'
@@ -84,9 +83,7 @@ jobs:
             pip install -r ${{ inputs.lambda_dir }}/requirements.txt -t package/
           fi
           cd package
-          zip -r ../lambda.zip .
-          ls -al
-          cd ..
+          zip -r ./lambda.zip .
           ls -al
 
       - name: List directory contents
