@@ -70,27 +70,26 @@ jobs:
         run: |
           cd ${{ inputs.lambda_dir }}
           npm ci
-          zip -r /lambda.zip .
+          zip -r ./lambda.zip .
           ls -al
-          ls -al /
 
       - name: Install dependencies and package Python Lambda
         if: env.runtime == 'python'
         run: |
+          cd ${{ inputs.lambda_dir }}
           mkdir -p package
           cp ${{ inputs.lambda_dir }}/*.py package/
           if [ -f "${{ inputs.lambda_dir }}/requirements.txt" ]; then
             pip install -r ${{ inputs.lambda_dir }}/requirements.txt -t package/
           fi
           cd package
-          zip -r ./lambda.zip .
+          zip -r ../lambda.zip .
           ls -al
-
-      - name: List directory contents
-        run: ls -al
 
       - name: Deploy to AWS Lambda
         run: |
+          ls -al
+          cd ${{ inputs.lambda_dir }}
           ls -al
           aws lambda update-function-code \
           --function-name ${{ inputs.lambda_name }} \
