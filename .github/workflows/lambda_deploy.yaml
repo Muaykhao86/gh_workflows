@@ -76,14 +76,13 @@ jobs:
       - name: Install dependencies and package Python Lambda
         if: env.runtime == 'python'
         run: |
-          cd ${{ inputs.lambda_dir }}
           mkdir -p package
           cp ${{ inputs.lambda_dir }}/*.py package/
           if [ -f "${{ inputs.lambda_dir }}/requirements.txt" ]; then
             pip install -r ${{ inputs.lambda_dir }}/requirements.txt -t package/
           fi
           cd package
-          zip -r ../lambda.zip .
+          zip -r ${{ inputs.lambda_dir }}/lambda.zip .
           ls -al
 
       - name: Deploy to AWS Lambda
