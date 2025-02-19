@@ -8,5 +8,8 @@
     "node-fetch": "^2.6.1",
     "octokit": "^4.1.2"
   },
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "mocha": "^11.1.0"
+  }
 }
