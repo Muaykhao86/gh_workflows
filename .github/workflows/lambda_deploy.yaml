@@ -69,7 +69,7 @@ jobs:
         if: env.runtime == 'node'
         run: |
           cd ${{ inputs.lambda_dir }}
-          npm ci
+          npm ci --omit=dev
           zip -r ./lambda.zip .
           
       - name: Install dependencies and package Python Lambda
