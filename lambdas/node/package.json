@@ -1,0 +1,11 @@
+{
+  "name": "lambda-node",
+  "version": "1.0.0",
+  "description": "A simple Node.js Lambda function",
+  "main": "index.mjs",
+  "type": "module",
+  "dependencies": {
+    "node-fetch": "^2.6.1"
+  },
+  "license": "ISC"
+}
