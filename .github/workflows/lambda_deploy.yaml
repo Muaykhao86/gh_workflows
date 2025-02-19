@@ -1,0 +1,90 @@
+name: Deploy_Lambda
+
+permissions:
+  id-token: write
+  contents: read 
+
+on: 
+  workflow_dispatch:
+    inputs:
+      lambda_dir:
+        description: Lambda directory
+        default: "LambdaExample"
+        type: string
+      lambda_name:
+        description: Name of the Lambda to update
+        default: "aws-basic-python-lambda"
+        type: string
+      github_iam_role:
+        description: Name of the IAM Role for updating lambda
+        default: "OIDC-TEST"
+        type: string
+      aws_account_id:
+        description: AWS Account ID
+        default: "123456789"
+        type: string
+      aws_region:
+        description: Target AWS Region
+        default: "eu-west-2"
+        type: string
+
+jobs:
+  deploy_lambda: 
+    runs-on: ubuntu-latest
+    steps: 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ inputs.aws_region }}
+          role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/${{ inputs.github_iam_role }}
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect Lambda runtime
+        id: detect_runtime
+        run: |
+          if [ -f "${{ inputs.lambda_dir }}/package.json" ]; then
+            echo "runtime=node" >> $GITHUB_ENV
+          elif ls ${{ inputs.lambda_dir }}/*.py >/dev/null 2>&1; then
+            echo "runtime=python" >> $GITHUB_ENV
+          else
+            echo "No valid runtime detected!"
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        if: env.runtime == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Python
+        if: env.runtime == 'python'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies and package Node Lambda 
+        if: env.runtime == 'node'
+        run: |
+          cd ${{ inputs.lambda_dir }}
+          npm ci
+          zip -r ../lambda.zip .
+
+      - name: Install dependencies and package Python Lambda
+        if: env.runtime == 'python'
+        run: |
+          mkdir -p package
+          cp ${{ inputs.lambda_dir }}/*.py package/
+          if [ -f "${{ inputs.lambda_dir }}/requirements.txt" ]; then
+            pip install -r ${{ inputs.lambda_dir }}/requirements.txt -t package/
+          fi
+          cd package
+          zip -r ../lambda.zip .
+
+      - name: Deploy to AWS Lambda
+        run: |
+          aws lambda update-function-code \
+          --function-name ${{ inputs.lambda_name }} \
+          --zip-file fileb://lambda.zip
