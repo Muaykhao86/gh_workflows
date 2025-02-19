@@ -82,8 +82,9 @@ jobs:
             pip install -r ${{ inputs.lambda_dir }}/requirements.txt -t package/
           fi
           cd package
-          zip -r ${{ inputs.lambda_dir }}/lambda.zip .
+          zip -r ./lambda.zip ${{ inputs.lambda_dir }}
           ls -al
+          ls -al ${{ inputs.lambda_dir }}
 
       - name: Deploy to AWS Lambda
         run: |
