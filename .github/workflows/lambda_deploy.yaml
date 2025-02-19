@@ -82,12 +82,16 @@ jobs:
           fi
           cd package
           zip -r ../lambda.zip .
+          ls
+          cd ..
+          ls -al
 
       - name: List directory contents
         run: ls -al
 
       - name: Deploy to AWS Lambda
         run: |
+          ls -al
           aws lambda update-function-code \
           --function-name ${{ inputs.lambda_name }} \
           --zip-file fileb://lambda.zip
