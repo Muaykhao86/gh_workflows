@@ -9,19 +9,19 @@ on:
     inputs:
       lambda_dir:
         description: Lambda directory
-        default: "lambdas/dir"
+        default: "lambdas/node"
         type: string
       lambda_name:
         description: Name of the Lambda to update
-        default: "aws-basic-python-lambda"
+        default: "node_test"
         type: string
       github_iam_role:
         description: Name of the IAM Role for updating lambda
-        default: "OIDC-TEST"
+        default: "GitHub_OIDC_personal"
         type: string
       aws_account_id:
         description: AWS Account ID
-        default: "123456789"
+        default: "827496304918"
         type: string
       aws_region:
         description: Target AWS Region
