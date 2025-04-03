@@ -30,29 +30,11 @@ jobs:
     with: 
       dirs: "${{ needs.vars.outputs.terraform_dir }},${{ needs.vars.outputs.lambda_dir }}"
 
-  create_dir_map:
-    name: "Create Directory Map"
-    runs-on: ubuntu-latest
-    needs: check_dirs_changes
-    outputs:
-      dir_map: ${{ steps.create_dir_map.outputs.dir_map }}
-    steps:
-      - name: Create Directory Map
-        id: create_dir_map
-        run: |
-          dir_map=()
-          dir_map["terraform"]="echo ${{needs.check_dirs_changes.outputs.dirs_changed}} | grep -q ${{ needs.vars.outputs.terraform_dir }}"
-          dir_map["lambda"]="echo ${{needs.check_dirs_changes.outputs.dirs_changed}} | grep -q ${{ needs.vars.outputs.lambda_dir }}"
-          
-          # Output the directory
-          echo "dir_map=${dir_map[@]}" >> $GITHUB_OUTPUT
-          echo "$dir_map"
-
   terraform_pr_checks:
     name: "Terraform PR Checks"
     runs-on: ubuntu-latest
-    needs: create_dir_map
-    if: ${{ fromJson(needs.create_dir_map.outputs.dir_map['terraform']) == 'true' }}
+    needs: check_dirs_changes
+    if: ${{ contains(needs.check_dirs_changes.outputs.dirs_changed, needs.vars.outputs.terraform_dir) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -144,7 +126,7 @@ jobs:
     name: "Lambda PR Checks"
     runs-on: ubuntu-latest
     needs: create_dir_map
-    if: ${{ fromJson(needs.create_dir_map.outputs.dir_map['lambda']) == 'true' }}
+    if: ${{ contains(needs.check_dirs_changes.outputs.dirs_changed, needs.vars.outputs.lambda_dir) }}"
     steps:
       - name: Detect Lambda runtime
         id: detect_runtime
