@@ -1,0 +1,127 @@
+name: File Change Check
+
+on:
+  workflow_call: 
+    inputs: 
+      dirs: 
+        description: "The directory to check for changes, please make sure to append a trailing slash."
+        type: string
+        default: "example/folder/,example/folder2/"
+      extension: 
+        description: "The type of file extension to check for, please do not include the dot. EG - yaml"
+        type: string
+        default: "any"
+    outputs:
+      files_changed: 
+        description: "Indicates if there have been any changes to files in the provided directory"
+        value: ${{ jobs.dir-file-check.outputs.files_changed }}
+      extension_changed:
+        description: "Indicates if there have been any changes to files with the provided extension"
+        value: ${{ jobs.dir-file-check.outputs.extension_changed }}
+      directories_changed:
+        description: "List of directories that have changed"
+        value: ${{ jobs.dir-file-check.outputs.directories_changed }}
+      files: 
+        description: "List of files that have changed"
+        value: ${{ jobs.dir-file-check.outputs.all_changed_files }}
+
+    
+
+jobs:
+  dir-file-check:
+    runs-on: ubuntu-latest
+    outputs:
+      files_changed: ${{ steps.directory_changes.outputs.files_changed }} 
+      directories_changed: ${{ steps.directory_changes.outputs.directories_changed }}
+      extension_changed: ${{ steps.extension_changes.outputs.extension_changed }}
+      all_changed_files: ${{ steps.diff.outputs.csf }}
+
+    steps:
+      # Checkout the code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch the full commit history
+
+      # Show changed files
+      - name: Determine Changed Files
+        id: diff
+        run: |
+          normal="\033[0m"
+          green="\033[0;32m"
+          yellow="\033[0;33m"
+          
+          BASE_BRANCH_SHA=${{ github.event.pull_request.base.sha }}
+          BASE_BRANCH_REF=${{ github.event.pull_request.base.ref }}
+          HEAD_BRANCH_SHA=${{ github.event.pull_request.head.sha }}
+          HEAD_BRANCH_REF=${{ github.event.pull_request.head.ref }}
+          
+          echo -e "${green}Comparing changes between:${normal}"
+          echo -e "Base branch: ${yellow}$BASE_BRANCH_REF${normal} (SHA: $BASE_BRANCH_SHA)"
+          echo -e "Head branch: ${yellow}$HEAD_BRANCH_REF${normal} (SHA: $HEAD_BRANCH_SHA)"
+          
+          # Use git diff to list changed files
+          CHANGED_FILES=$(git diff --name-only $BASE_BRANCH_SHA $HEAD_BRANCH_SHA)
+          echo -e "${green}Changed files:${normal}"
+          echo "$CHANGED_FILES"
+          
+          UNIQUE_EXTENSIONS=$(echo "$CHANGED_FILES" | sed "s/.*\.//" | sort -u)
+          echo -e "${green}Changed file extensions:${normal}"
+          echo "$UNIQUE_EXTENSIONS"
+
+          # Set changed files as output in a single line so other steps can use it
+          CHANGED_FILES_SINGLE_LINE=$(echo "$CHANGED_FILES" | tr '\n' ',')  # Converts newlines to commas
+          echo "csf=${CHANGED_FILES_SINGLE_LINE}" >> $GITHUB_ENV
+          echo "csf=${CHANGED_FILES_SINGLE_LINE}" >> $GITHUB_OUTPUT 
+          CHANGED_EXTENSIONS_SINGLE_LINE=$(echo "$UNIQUE_EXTENSIONS" | tr '\n' ',')  # Converts newlines to commas
+          echo "ext=$CHANGED_EXTENSIONS_SINGLE_LINE" >> $GITHUB_ENV
+
+      # Filter for changes in directory
+      - name: Check for Directory Changes
+        id: directory_changes
+        if: ${{ inputs.dir != 'example/folder/' }}
+        env: 
+          comma_separated_files: ${{ env.csf }}
+          search_directories:  ${{ inputs.dirs }}
+        run: |
+          normal="\033[0m"
+          green="\033[0;32m"
+          
+          search_directories=$(echo "$search_directories" | tr -d '[:space:]')
+          echo -e "${green}Filtering files for the dirs: ${normal}$search_directories"          
+          # Loop the csv string
+          IFS=','
+          echo "$IFS"
+          directories_changed=()
+          for dir in $search_directories; do
+            if ! echo "$comma_separated_files" | grep -q "$dir"; then
+              echo -e "${green}No changes found in ${normal}$dir."
+            else
+              echo -e "${green}Changes found in ${normal}$dir"
+              directories_changed+=("$dir")
+            fi
+          done
+          echo -e "${green}Changed directories:${normal} ${directories_changed[*]}"
+          echo "directories_changed=${directories_changed[*]}" >> $GITHUB_OUTPUT
+          IFS="$oldIFS"
+
+        
+      - name: Check for Extension Changes
+        id: extension_changes
+        if: ${{ inputs.extension != 'any' }}
+        env: 
+          unique_extensions: ${{ env.ext }}
+          search_extension: ${{ inputs.extension }}
+        run: |
+          normal="\033[0m"
+          green="\033[0;32m"
+          
+          echo -e "${green}Filtering files for the extension: ${normal}$search_extension"
+
+          if ! echo "$unique_extensions" | grep -q "$search_extension"; then
+            echo -e "${green}No changes found in ${normal}$search_extension."
+            echo "extension_changed=false" >> $GITHUB_OUTPUT
+          else
+            echo -e "${green}Changes found in ${normal}$search_extension"
+            echo "extension_changed=true" >> $GITHUB_OUTPUT
+          fi
