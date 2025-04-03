@@ -8,8 +8,8 @@ on:
 env:
   TERRAFORM_DIR: "automation/terraform/"
   LAMBDA_DIR: "automation/aws_lambda/"
-  CCOE_DIR: "automation/terraform/modules/ccoe/"
-  CCOE_MODULES_DIR: "automation/terraform/ccoe/modules/"
+  CCOE_DIR: "automation/terraform/"
+  # CCOE_MODULES_DIR: "automation/terraform/ccoe/modules/"
 
 jobs:
   # Need to expose the env vars so we can pass it to the reusable workflow
@@ -125,18 +125,18 @@ jobs:
       #     echo "changed_modules=${changed_modules}" >> $GITHUB_OUTPUT
       #     echo "any_changed=${any_changed}" >> $GITHUB_OUTPUT
 
-      - name: Run Terraform Test
-        id: Test
-        if: ${{ steps.Filter.outputs.any_changed == 'true' }}
-        working-directory: ${{ env.CCOE_DIR }}
-        run: |
-          # Initialize variables
-          changed_modules="${{ steps.Filter.outputs.changed_modules }}"
+      # - name: Run Terraform Test
+      #   id: Test
+      #   if: ${{ steps.Filter.outputs.any_changed == 'true' }}
+      #   working-directory: ${{ env.CCOE_DIR }}
+      #   run: |
+      #     # Initialize variables
+      #     changed_modules="${{ steps.Filter.outputs.changed_modules }}"
           
-          # Run tests for each module
-          for module in $changed_modules; do
-            terraform test -module-path=$module
-          done
+      #     # Run tests for each module
+      #     for module in $changed_modules; do
+      #       terraform test -module-path=$module
+      #     done
     
   # ! If terraform changes run tf tests
   lambda_pr_checks:
@@ -149,8 +149,10 @@ jobs:
         id: detect_runtime
         run: |
           if [ -f "${{ inputs.lambda_dir }}/package.json" ]; then
+            echo "THERES JS!"
             echo "runtime=node" >> $GITHUB_ENV
           elif ls ${{ inputs.lambda_dir }}/*.py >/dev/null 2>&1; then
+            echo "THERES PYTHON!"
             echo "runtime=python" >> $GITHUB_ENV
           else
             echo "No valid runtime detected!"

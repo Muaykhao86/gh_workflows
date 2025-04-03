@@ -102,6 +102,7 @@ jobs:
             fi
           done
           echo -e "${green}Changed directories:${normal} ${directories_changed[*]}"
+          # return list of dirs changed
           echo "directories_changed=${directories_changed[*]}" >> $GITHUB_OUTPUT
           IFS="$oldIFS"
 
