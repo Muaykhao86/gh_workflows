@@ -34,7 +34,7 @@ jobs:
     name: "Lambda PR Checks"
     runs-on: ubuntu-latest
     needs: [check_dirs_changes, vars]
-    if: ${{ contains(needs.check_dirs_changes.outputs.directories_changed, needs.vars.outputs.lambda_dir) }}"
+    if: ${{ contains(needs.check_dirs_changes.outputs.directories_changed, needs.vars.outputs.lambda_dir) }}
     steps:
       - name: test
         run: |
