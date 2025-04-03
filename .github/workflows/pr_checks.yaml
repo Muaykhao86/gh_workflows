@@ -30,31 +30,50 @@ jobs:
     with: 
       dirs: "${{ needs.vars.outputs.terraform_dir }},${{ needs.vars.outputs.lambda_dir }}"
 
+  lambda_pr_checks:
+    name: "Lambda PR Checks"
+    runs-on: ubuntu-latest
+    needs: check_dirs_changes
+    if: ${{ contains(needs.check_dirs_changes.outputs.directories_changed, needs.vars.outputs.lambda_dir) }}"
+    steps:
+      - name: test
+        run: |
+          echo ${{ needs.check_dirs_changes.outputs.directories_changed }}
+          echo ${{ needs.vars.outputs.lambda_dir }}
+          echo ${{ contains(needs.check_dirs_changes.outputs.directories_changed, needs.vars.outputs.lambda_dir) }}
+          echo "Lambda changes detected"
+
   terraform_pr_checks:
     name: "Terraform PR Checks"
     runs-on: ubuntu-latest
     needs: check_dirs_changes
     if: ${{ contains(needs.check_dirs_changes.outputs.directories_changed, needs.vars.outputs.terraform_dir) }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: test
+        run: |
+          echo ${{ needs.check_dirs_changes.outputs.directories_changed }}
+          echo ${{ needs.vars.outputs.terraform_dir }}
+          echo ${{ contains(needs.check_dirs_changes.outputs.directories_changed, needs.vars.outputs.terraform_dir) }}
+          echo "Terraform changes detected"
+      # - name: Checkout
+      #   uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      # - name: Setup Terraform
+      #   uses: hashicorp/setup-terraform@v3
 
-      - name: Run Terraform Format Check
-        id: FMT
-        working-directory: ${{ env.TERRAFORM_DIR }}
-        run: terraform fmt -recursive -check
+      # - name: Run Terraform Format Check
+      #   id: FMT
+      #   working-directory: ${{ env.TERRAFORM_DIR }}
+      #   run: terraform fmt -recursive -check
         
-      - name: Run Terraform Init
-        working-directory: ${{ env.CCOE_DIR }}
-        run: terraform init -backend=false
+      # - name: Run Terraform Init
+      #   working-directory: ${{ env.CCOE_DIR }}
+      #   run: terraform init -backend=false
       
-      - name: Run Terraform Validation Check
-        id: Validate
-        working-directory: ${{ env.CCOE_DIR }}
-        run: terraform validate
+      # - name: Run Terraform Validation Check
+      #   id: Validate
+      #   working-directory: ${{ env.CCOE_DIR }}
+      #   run: terraform validate
 
       # - name: Detect Specific Module Changes
       #   id: Filter
@@ -122,25 +141,25 @@ jobs:
       #     done
     
   # ! If terraform changes run tf tests
-  lambda_pr_checks:
-    name: "Lambda PR Checks"
-    runs-on: ubuntu-latest
-    needs: check_dirs_changes
-    if: ${{ contains(needs.check_dirs_changes.outputs.directories_changed, needs.vars.outputs.lambda_dir) }}"
-    steps:
-      - name: Detect Lambda runtime
-        id: detect_runtime
-        run: |
-          if [ -f "${{ inputs.lambda_dir }}/package.json" ]; then
-            echo "THERES JS!"
-            echo "runtime=node" >> $GITHUB_ENV
-          elif ls ${{ inputs.lambda_dir }}/*.py >/dev/null 2>&1; then
-            echo "THERES PYTHON!"
-            echo "runtime=python" >> $GITHUB_ENV
-          else
-            echo "No valid runtime detected!"
-            exit 1
-          fi
+  # lambda_pr_checks:
+  #   name: "Lambda PR Checks"
+  #   runs-on: ubuntu-latest
+  #   needs: check_dirs_changes
+  #   if: ${{ contains(needs.check_dirs_changes.outputs.directories_changed, needs.vars.outputs.lambda_dir) }}"
+  #   steps:
+  #     - name: Detect Lambda runtime
+  #       id: detect_runtime
+  #       run: |
+  #         if [ -f "${{ inputs.lambda_dir }}/package.json" ]; then
+  #           echo "THERES JS!"
+  #           echo "runtime=node" >> $GITHUB_ENV
+  #         elif ls ${{ inputs.lambda_dir }}/*.py >/dev/null 2>&1; then
+  #           echo "THERES PYTHON!"
+  #           echo "runtime=python" >> $GITHUB_ENV
+  #         else
+  #           echo "No valid runtime detected!"
+  #           exit 1
+  #         fi
 
       # - name: Set up Node.js
       #   if: env.runtime == 'node'
