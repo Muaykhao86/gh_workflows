@@ -1,0 +1,199 @@
+name: "Terraform PR Checks"
+
+on:
+  pull_request:
+    branches:
+      - main
+
+env:
+  TERRAFORM_DIR: "automation/terraform/"
+  LAMBDA_DIR: "automation/aws_lambda/"
+  CCOE_DIR: "automation/terraform/modules/ccoe/"
+  CCOE_MODULES_DIR: "automation/terraform/ccoe/modules/"
+
+jobs:
+  # Need to expose the env vars so we can pass it to the reusable workflow
+  vars:
+    name: "Compute Variables"
+    runs-on: ubuntu-latest
+    outputs:
+      terraform_dir: ${{ env.TERRAFORM_DIR }}
+      lambda_dir: ${{ env.LAMBDA_DIR }}
+      ccoe_dir: ${{ env.CCOE_DIR }}
+      ccoe_modules_dir: ${{ env.CCOE_MODULES_DIR }}
+    steps:
+      - run: echo "Exposing env vars"
+
+  check_dirs_changes:
+    uses: ./.github/workflows/check_directory_diff.yaml
+    needs: vars
+    with: 
+      dirs: "${{ needs.vars.outputs.terraform_dir }},${{ needs.vars.outputs.lambda_dir }}"
+
+  create_dir_map:
+    name: "Create Directory Map"
+    runs-on: ubuntu-latest
+    needs: check_dirs_changes
+    outputs:
+      dir_map: ${{ steps.create_dir_map.outputs.dir_map }}
+    steps:
+      - name: Create Directory Map
+        id: create_dir_map
+        run: |
+          dir_map=()
+          dir_map["terraform"]="echo ${{needs.check_dirs_changes.outputs.dirs_changed}} | grep -q ${{ needs.vars.outputs.terraform_dir }}"
+          dir_map["lambda"]="echo ${{needs.check_dirs_changes.outputs.dirs_changed}} | grep -q ${{ needs.vars.outputs.lambda_dir }}"
+          
+          # Output the directory
+          echo "dir_map=${dir_map[@]}" >> $GITHUB_OUTPUT
+
+  terraform_pr_checks:
+    name: "Terraform PR Checks"
+    runs-on: ubuntu-latest
+    needs: create_dir_map
+    if: ${{ fromJson(needs.create_dir_map.outputs.dir_map['terraform']) == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Run Terraform Format Check
+        id: FMT
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform fmt -recursive -check
+        
+      - name: Run Terraform Init
+        working-directory: ${{ env.CCOE_DIR }}
+        run: terraform init -backend=false
+      
+      - name: Run Terraform Validation Check
+        id: Validate
+        working-directory: ${{ env.CCOE_DIR }}
+        run: terraform validate
+
+      # - name: Detect Specific Module Changes
+      #   id: Filter
+      #   run: |
+      #     # Initialize variables
+      #     modules_base="${{ needs.vars.outputs.ccoe_modules_dir }}"
+      #     filter_paths=""
+          
+      #     # Modules to check for changes
+      #       modules=(
+      #       "auto_scaling_group"
+      #       "baseline"
+      #       "compute"
+      #       "container"
+      #       "databases"
+      #       "networking"
+      #       "storage"
+      #       "databases"
+      #       "load_balancers"
+      #       "machine_learning"
+      #       "machine_learning"
+      #       "network"
+      #       "security"
+      #       "serverless_functions",
+      #       "storage"
+      #       )
+          
+      #     # Check if any module has changed
+      #     for module in "${modules[@]}"; do
+      #       module_path="${modules_base}${module}"
+
+            
+      #       for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+      #       if [[ $file == ${module_path}/* ]]; then
+      #           if [[ -n "$filter_paths=""" ]]; then
+      #             filter_paths+=","
+      #           fi
+         
+      #           filter_paths+="$module_path"
+      #           break
+      #       fi
+            
+      #       # Append to filtered modules if changed
+      #       if [[ $module_changed == true ]]; then
+              
+      #       fi
+      #     done
+          
+      #     # Output the JSON object of changed modules
+      #     changed_modules=$(cat module_changes.txt | sed 's/module_changes=//')
+      #     echo "changed_modules=${changed_modules}" >> $GITHUB_OUTPUT
+      #     echo "any_changed=${any_changed}" >> $GITHUB_OUTPUT
+
+      - name: Run Terraform Test
+        id: Test
+        if: ${{ steps.Filter.outputs.any_changed == 'true' }}
+        working-directory: ${{ env.CCOE_DIR }}
+        run: |
+          # Initialize variables
+          changed_modules="${{ steps.Filter.outputs.changed_modules }}"
+          
+          # Run tests for each module
+          for module in $changed_modules; do
+            terraform test -module-path=$module
+          done
+    
+  # ! If terraform changes run tf tests
+  lambda_pr_checks:
+    name: "Lambda PR Checks"
+    runs-on: ubuntu-latest
+    needs: create_dir_map
+    if: ${{ fromJson(needs.create_dir_map.outputs.dir_map['lambda']) == 'true' }}
+    steps:
+      - name: Detect Lambda runtime
+        id: detect_runtime
+        run: |
+          if [ -f "${{ inputs.lambda_dir }}/package.json" ]; then
+            echo "runtime=node" >> $GITHUB_ENV
+          elif ls ${{ inputs.lambda_dir }}/*.py >/dev/null 2>&1; then
+            echo "runtime=python" >> $GITHUB_ENV
+          else
+            echo "No valid runtime detected!"
+            exit 1
+          fi
+
+      # - name: Set up Node.js
+      #   if: env.runtime == 'node'
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: '20'
+
+      # - name: Set up Python
+      #   if: env.runtime == 'python'
+      #   uses: actions/setup-python@v4
+      #   with:
+      #     python-version: '3.12'
+
+      # - name: Install dependencies and package Node Lambda 
+      #   if: env.runtime == 'node'
+      #   run: |
+      #     cd ${{ inputs.lambda_dir }}
+      #     npm ci --omit=dev
+      #     zip -r ./lambda.zip .
+          
+      # - name: Install dependencies and package Python Lambda
+      #   if: env.runtime == 'python'
+      #   run: |
+      #     cd ${{ inputs.lambda_dir }}
+      #     mkdir -p package
+      #     cp *.py package/
+      #     if [ -f "requirements.txt" ]; then
+      #       pip install -r requirements.txt -t package/
+      #     fi
+      #     cd package
+      #     zip -r ../lambda.zip .
+
+      # - name: Run python tests
+      #   env:
+      #     PYTHONPATH: ./  # Set the PYTHONPATH for the tests
+      #   run: |
+      #     pytest tests/unit/test_handler.py
+
+      # - name: Run NPM tests
+      #   run: |
+      #     npm run test
