@@ -34,7 +34,7 @@ jobs:
     name: "Terraform PR Checks"
     runs-on: ubuntu-latest
     needs: check_dirs_changes
-    if: ${{ contains(needs.check_dirs_changes.outputs.dirs_changed, needs.vars.outputs.terraform_dir) }}
+    if: ${{ contains(needs.check_dirs_changes.outputs.directories_changed, needs.vars.outputs.terraform_dir) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -125,8 +125,8 @@ jobs:
   lambda_pr_checks:
     name: "Lambda PR Checks"
     runs-on: ubuntu-latest
-    needs: create_dir_map
-    if: ${{ contains(needs.check_dirs_changes.outputs.dirs_changed, needs.vars.outputs.lambda_dir) }}"
+    needs: check_dirs_changes
+    if: ${{ contains(needs.check_dirs_changes.outputs.directories_changed, needs.vars.outputs.lambda_dir) }}"
     steps:
       - name: Detect Lambda runtime
         id: detect_runtime
