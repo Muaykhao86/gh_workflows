@@ -46,6 +46,7 @@ jobs:
           
           # Output the directory
           echo "dir_map=${dir_map[@]}" >> $GITHUB_OUTPUT
+          echo "$dir_map"
 
   terraform_pr_checks:
     name: "Terraform PR Checks"
