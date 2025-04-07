@@ -202,7 +202,7 @@ jobs:
               cd $lambda_dir
               npm ci
               echo -e "${green}RUNNING NODE TESTS!!${normal}"
-              $npm run test
+              npm run test
               cd -
               
             # if it as a requirements.txt its python, all dirs will have one or the other if there are tests
