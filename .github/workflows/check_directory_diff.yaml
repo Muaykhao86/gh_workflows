@@ -4,16 +4,16 @@ on:
   workflow_call: 
     inputs: 
       dirs: 
-        description: "The directory to check for changes, please make sure to append a trailing slash."
+        description: "Directories to check for changes, please make sure to append a trailing slash."
         type: string
         default: "example/folder/,example/folder2/"
       extension: 
-        description: "The type of file extension to check for, please do not include the dot. EG - yaml"
+        description: "File extension to check for changes, please do not include the dot. EG - yaml"
         type: string
         default: "any"
     outputs:
       files_changed: 
-        description: "Indicates if there have been any changes to files in the provided directory"
+        description: "Indicates if there have been any changes to files in the provided directories"
         value: ${{ jobs.dir-file-check.outputs.files_changed }}
       extension_changed:
         description: "Indicates if there have been any changes to files with the provided extension"
@@ -70,25 +70,26 @@ jobs:
           echo "$UNIQUE_EXTENSIONS"
 
           # Set changed files as output in a single line so other steps can use it
-          CHANGED_FILES_SINGLE_LINE=$(echo "$CHANGED_FILES" | tr '\n' ',')  # Converts newlines to commas
-          echo "csf=${CHANGED_FILES_SINGLE_LINE}" >> $GITHUB_ENV
-          echo "csf=${CHANGED_FILES_SINGLE_LINE}" >> $GITHUB_OUTPUT 
+          CHANGED_FILES_SINGLE_LINE=$(echo "$CHANGED_FILES" | tr '\n' ',')   # Converts newlines to commas
           CHANGED_EXTENSIONS_SINGLE_LINE=$(echo "$UNIQUE_EXTENSIONS" | tr '\n' ',')  # Converts newlines to commas
-          echo "ext=$CHANGED_EXTENSIONS_SINGLE_LINE" >> $GITHUB_ENV
+          echo "csf=${CHANGED_FILES_SINGLE_LINE}" >> $GITHUB_OUTPUT 
+          echo "ext=$CHANGED_EXTENSIONS_SINGLE_LINE" >> $GITHUB_OUTPUT 
 
       # Filter for changes in directory
       - name: Check for Directory Changes
         id: directory_changes
         if: ${{ inputs.dir != 'example/folder/' }}
         env: 
-          comma_separated_files: ${{ env.csf }}
+          comma_separated_files: ${{ steps.diff.outputs.csf }}
           search_directories:  ${{ inputs.dirs }}
         run: |
           normal="\033[0m"
           green="\033[0;32m"
           
-          search_directories=$(echo "$search_directories" | tr -d '[:space:]')
+          # Remove spaces (Directory names should not have a space in them so this should be safe)
+          search_directories=$(echo "$search_directories" | tr -d '[:space:]') 
           echo -e "${green}Filtering files for the dirs: ${normal}$search_directories"          
+          
           # Loop the csv string
           IFS=','
           echo "$IFS"
@@ -101,8 +102,7 @@ jobs:
               directories_changed+=("$dir")
             fi
           done
-          echo -e "${green}Changed directories:${normal} ${directories_changed[*]}"
-          # return list of dirs changed
+          echo -e "${green}Directories Changed:${normal} ${directories_changed[*]}"
           echo "directories_changed=${directories_changed[*]}" >> $GITHUB_OUTPUT
           IFS="$oldIFS"
 
@@ -111,7 +111,7 @@ jobs:
         id: extension_changes
         if: ${{ inputs.extension != 'any' }}
         env: 
-          unique_extensions: ${{ env.ext }}
+          unique_extensions: ${{ steps.diff.outputs.ext }}
           search_extension: ${{ inputs.extension }}
         run: |
           normal="\033[0m"
