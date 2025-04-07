@@ -179,8 +179,9 @@ jobs:
         if: ${{ steps.lambda_changes.outputs.count > 0 }}
         env:
           lambda_dirs: ${{ steps.lambda_changes.outputs.lambda_dirs }}
+          lambda_dir_count: ${{ steps.lambda_changes.outputs.count }}
         run: |
-          echo "Processing ${steps.lambda_changes.outputs.count} Lambda functions"
+          echo "Processing ${lambda_dir_count} Lambda functions"
           
           for lambda_dir in ${lambda_dirs}; do
             echo "Checking runtime for $lambda_dir"
