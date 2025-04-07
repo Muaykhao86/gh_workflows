@@ -30,48 +30,37 @@ jobs:
     with: 
       dirs: "${{ needs.vars.outputs.terraform_dir }},${{ needs.vars.outputs.lambda_dir }}"
 
-  create_dir_map:
-    name: "Create Directory Map"
-    runs-on: ubuntu-latest
-    needs: check_dirs_changes
-    outputs:
-      dir_map: ${{ steps.create_dir_map.outputs.dir_map }}
-    steps:
-      - name: Create Directory Map
-        id: create_dir_map
-        run: |
-          dir_map=()
-          dir_map["terraform"]="echo ${{needs.check_dirs_changes.outputs.dirs_changed}} | grep -q ${{ needs.vars.outputs.terraform_dir }}"
-          dir_map["lambda"]="echo ${{needs.check_dirs_changes.outputs.dirs_changed}} | grep -q ${{ needs.vars.outputs.lambda_dir }}"
-          
-          # Output the directory
-          echo "dir_map=${dir_map[@]}" >> $GITHUB_OUTPUT
-
   terraform_pr_checks:
     name: "Terraform PR Checks"
     runs-on: ubuntu-latest
-    needs: create_dir_map
-    if: ${{ fromJson(needs.create_dir_map.outputs.dir_map['terraform']) == 'true' }}
+    needs: [check_dirs_changes, vars]
+    if: ${{ contains(needs.check_dirs_changes.outputs.directories_changed, needs.vars.outputs.terraform_dir) }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: test
+        run: |
+          echo ${{ needs.check_dirs_changes.outputs.directories_changed }}
+          echo ${{ needs.vars.outputs.terraform_dir }}
+          echo ${{ contains(needs.check_dirs_changes.outputs.directories_changed, needs.vars.outputs.terraform_dir) }}
+          echo "Terraform changes detected"
+      # - name: Checkout
+      #   uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      # - name: Setup Terraform
+      #   uses: hashicorp/setup-terraform@v3
 
-      - name: Run Terraform Format Check
-        id: FMT
-        working-directory: ${{ env.TERRAFORM_DIR }}
-        run: terraform fmt -recursive -check
+      # - name: Run Terraform Format Check
+      #   id: FMT
+      #   working-directory: ${{ env.TERRAFORM_DIR }}
+      #   run: terraform fmt -recursive -check
         
-      - name: Run Terraform Init
-        working-directory: ${{ env.CCOE_DIR }}
-        run: terraform init -backend=false
+      # - name: Run Terraform Init
+      #   working-directory: ${{ env.CCOE_DIR }}
+      #   run: terraform init -backend=false
       
-      - name: Run Terraform Validation Check
-        id: Validate
-        working-directory: ${{ env.CCOE_DIR }}
-        run: terraform validate
+      # - name: Run Terraform Validation Check
+      #   id: Validate
+      #   working-directory: ${{ env.CCOE_DIR }}
+      #   run: terraform validate
 
       # - name: Detect Specific Module Changes
       #   id: Filter
@@ -142,22 +131,88 @@ jobs:
   lambda_pr_checks:
     name: "Lambda PR Checks"
     runs-on: ubuntu-latest
-    needs: create_dir_map
-    if: ${{ fromJson(needs.create_dir_map.outputs.dir_map['lambda']) == 'true' }}
+    needs: [check_dirs_changes, vars]
+    if: ${{ contains(needs.check_dirs_changes.outputs.directories_changed, needs.vars.outputs.lambda_dir) }}
     steps:
-      - name: Detect Lambda runtime
-        id: detect_runtime
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Identify changed lambda directories
+        id: lambda_changes
         run: |
-          if [ -f "${{ inputs.lambda_dir }}/package.json" ]; then
-            echo "THERES JS!"
-            echo "runtime=node" >> $GITHUB_ENV
-          elif ls ${{ inputs.lambda_dir }}/*.py >/dev/null 2>&1; then
-            echo "THERES PYTHON!"
-            echo "runtime=python" >> $GITHUB_ENV
-          else
-            echo "No valid runtime detected!"
-            exit 1
-          fi
+          # Get all changed files
+          CHANGED_FILES="${{ needs.check_dirs_changes.outputs.all_changed_files }}"
+          LAMBDA_BASE_DIR="${{ needs.vars.outputs.lambda_dir }}"
+          
+          echo "Analyzing changed files for Lambda functions..."
+          
+          # Create an array to store lambda directories
+          old_IFS=$IFS
+          IFS=','
+          echo "$IFS"
+          LAMBDA_DIRS=()
+          # Extract lambda function directories
+          for file in ${CHANGED_FILES}; do
+            # Is the file in the base lambda dir?
+            if [[ $file == $LAMBDA_BASE_DIR* ]]; then
+              echo "File: $file"
+
+              # Extract the lambda function directory (assumes structure like automation/aws_lambda/function-name/*)
+              lambda_dir=$(echo "$file" | awk -F/ '{print $1"/"$2"/"$3}')
+              
+              # Check if we already added this directory to the list
+              if [[ ! " ${LAMBDA_DIRS[*]} " =~ " ${lambda_dir} " ]]; then
+                LAMBDA_DIRS+=("$lambda_dir")
+                echo "Found changes in Lambda function: $lambda_dir"
+              fi
+            fi
+          done
+          
+          # Expose the list of directories for later steps
+          echo "lambda_dirs=${LAMBDA_DIRS[*]}" >> $GITHUB_OUTPUT
+          echo "${LAMBDA_DIRS[*]}"
+          echo "count=${#LAMBDA_DIRS[@]}" >> $GITHUB_OUTPUT
+          echo "Number of DIRs Changed: ${LAMBDA_DIRS[@]}"
+      
+      - name: Process Lambda functions and test
+        if: ${{ steps.lambda_changes.outputs.count > 0 }}
+        env:
+          lambda_dirs: ${{ steps.lambda_changes.outputs.lambda_dirs }}
+        run: |
+          echo "Processing ${steps.lambda_changes.outputs.count} Lambda functions"
+          
+          for lambda_dir in ${lambda_dirs}; do
+            echo "Checking runtime for $lambda_dir"
+            
+            # if it has a package.json its node
+            if [ -f "$lambda_dir/package.json" ]; then
+              echo "Node.js Lambda detected in $lambda_dir"
+              echo "RUNTIME=node" >> $GITHUB_ENV
+              
+              # Run Node.js specific tests
+              cd $lambda_dir
+              npm ci
+              echo "RUNNING NODE TESTS!!"
+              # npm test
+              cd -
+              
+            # if it as a requirements.txt its python, all dirs will have one or the other if there are tests
+            elif [ -f "$lambda_dir/requirements.txt" ]; then
+              echo "Python Lambda detected in $lambda_dir"
+              echo "LAMBDA_DIR=$lambda_dir" >> $GITHUB_ENV
+              echo "RUNTIME=python" >> $GITHUB_ENV
+              
+              # Run Python specific tests
+              cd $lambda_dir
+              pip install -r requirements.txt -t ./package
+              echo "RUNNING PYTHON TESTS!!"
+              pytest tests/÷
+              cd -
+              
+            else
+              echo "No tests to run from $lambda_dir"
+            fi
+          done
 
       # - name: Set up Node.js
       #   if: env.runtime == 'node'

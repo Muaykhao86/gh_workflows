@@ -1,5 +1,5 @@
 {
-  "name": "lambda-node",
+  "name": "lambda-node-test",
   "version": "1.0.0",
   "description": "A simple Node.js Lambda function",
   "main": "index.mjs",
