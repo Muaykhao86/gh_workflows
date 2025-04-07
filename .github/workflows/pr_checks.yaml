@@ -173,7 +173,7 @@ jobs:
           echo "lambda_dirs=${LAMBDA_DIRS[*]}" >> $GITHUB_OUTPUT
           echo "${LAMBDA_DIRS[*]}"
           echo "count=${#LAMBDA_DIRS[@]}" >> $GITHUB_OUTPUT
-          echo "Number of DIRs Changed: ${LAMBDA_DIRS[@]}"
+          echo "Number of DIRs Changed: ${#LAMBDA_DIRS[@]}"
       
       - name: Process Lambda functions and test
         if: ${{ steps.lambda_changes.outputs.count > 0 }}
