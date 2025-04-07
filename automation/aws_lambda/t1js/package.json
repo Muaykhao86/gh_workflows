@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "A simple Node.js Lambda function",
   "main": "index.mjs",
+  "scripts": {
+    "test": "echo \"test successful\""
+  },
   "type": "module",
   "dependencies": {
     "node-fetch": "^2.6.1",

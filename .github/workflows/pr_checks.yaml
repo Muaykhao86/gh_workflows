@@ -179,6 +179,7 @@ jobs:
         env:
           lambda_dirs: ${{ steps.lambda_changes.outputs.lambda_dirs }}
           lambda_dir_count: ${{ steps.lambda_changes.outputs.count }}
+          PYTHONPATH: '.'
         run: |
           echo "Processing ${lambda_dir_count} Lambda functions"
 
@@ -196,7 +197,7 @@ jobs:
               cd $lambda_dir
               npm ci
               echo "RUNNING NODE TESTS!!"
-              # npm test
+              npm run test
               cd -
               
             # if it as a requirements.txt its python, all dirs will have one or the other if there are tests
@@ -207,9 +208,9 @@ jobs:
               
               # Run Python specific tests
               cd $lambda_dir
-              pip install -r requirements.txt -t ./package
               echo "RUNNING PYTHON TESTS!!"
-              pytest tests/÷
+              pip install -r requirements.txt
+              pytest --cov -o log_cli=true
               cd -
               
             else
