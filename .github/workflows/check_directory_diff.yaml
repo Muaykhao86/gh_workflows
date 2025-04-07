@@ -87,7 +87,7 @@ jobs:
           green="\033[0;32m"
           
           # Remove spaces (Directory names should not have a space in them so this should be safe)
-          search_directories=$(echo "$search_directories" | tr -d '[:space:]') 
+          # search_directories=$(echo "$search_directories" | tr -d '[:space:]') 
           echo -e "${green}Filtering files for the dirs: ${normal}$search_directories"          
           
           # Loop the csv string
@@ -95,6 +95,7 @@ jobs:
           IFS=','
           directories_changed=()
           for dir in $search_directories; do
+            echo $dir
             if ! echo "$comma_separated_files" | grep -q "$dir"; then
               echo -e "${green}No changes found in ${normal}$dir"
               echo -e "${green}Changes found in ${normal}$dir"
