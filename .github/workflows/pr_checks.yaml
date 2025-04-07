@@ -153,7 +153,7 @@ jobs:
           # Get all changed files
           CHANGED_FILES="${{ needs.check_dirs_changes.outputs.all_changed_files }}"
           LAMBDA_BASE_DIR="${{ needs.vars.outputs.lambda_dir }}"
-          echo "${green}Analyzing changed files for Lambda functions...${normal}"
+          echo -e "${green}Analyzing changed files for Lambda functions...${normal}"
           
           # Create an array to store lambda directories
           old_IFS=$IFS
@@ -161,17 +161,17 @@ jobs:
           LAMBDA_DIRS=()
           # Extract lambda function directories
           for file in ${CHANGED_FILES[@]}; do
-            echo "${green}Checking $file"
+            echo -e "${green}Checking $file"
             # Is the file in the base lambda dir?
             if [[ $file == $LAMBDA_BASE_DIR* ]]; then
-              echo "${green}File: ${normal}$file"
+              echo -e "${green}File: ${normal}$file"
 
               # Extract the lambda function directory (assumes structure like automation/aws_lambda/function-name/*)
               lambda_dir=$(echo "$file" | awk -F/ '{print $1"/"$2"/"$3}')
               # Check if we already added this directory to the list
               if [[ ! " ${LAMBDA_DIRS[*]} " =~ " ${lambda_dir} " ]]; then
                 LAMBDA_DIRS+=("$lambda_dir")
-                echo "${green}Found changes in Lambda function: ${normal}${lambda_dir}"
+                echo -e "${green}Found changes in Lambda function: ${normal}${lambda_dir}"
               fi
             fi
           done
@@ -187,37 +187,37 @@ jobs:
           lambda_dir_count: ${{ steps.lambda_changes.outputs.count }}
           PYTHONPATH: '.'
         run: |
-          echo "${green}Processing${normal} ${lambda_dir_count} ${green}Lambda functions${normal}"
+          echo -e "${green}Processing${normal} ${lambda_dir_count} ${green}Lambda functions${normal}"
 
           old_IFS=$IFS
           IFS=','
           for lambda_dir in ${lambda_dirs[@]}; do
-            echo "${green}Checking runtime for${normal} $lambda_dir"
+            echo -e "${green}Checking runtime for${normal} $lambda_dir"
             
             # if it has a package.json its node
             if [ -f "$lambda_dir/package.json" ]; then
-              echo "${green}Node.js Lambda detected in ${normal}${lambda_dir}"
+              echo -e "${green}Node.js Lambda detected in ${normal}${lambda_dir}"
               
               # Run Node.js specific tests
               cd $lambda_dir
               npm ci
-              echo "${green}RUNNING NODE TESTS!!${normal}"
-              ${yellow}$npm run test${normal}
+              echo -e "${green}RUNNING NODE TESTS!!${normal}"
+              $npm run test
               cd -
               
             # if it as a requirements.txt its python, all dirs will have one or the other if there are tests
             elif [ -f "$lambda_dir/requirements.txt" ]; then
-              echo "${green}Python Lambda detected in ${normal}${lambda_dir}"
+              echo -e "${green}Python Lambda detected in ${normal}${lambda_dir}"
               
               # Run Python specific tests
               cd $lambda_dir
-              echo "${green}RUNNING PYTHON TESTS!!"
+              echo -e "${green}RUNNING PYTHON TESTS!!"
               pip install -r requirements.txt
-              echo "${yellow}$running pytest${normal}"
+              echo -e "${yellow}$running pytest${normal}"
               # pytest --cov -o log_cli=true
               cd -
               
             else
-              echo "No tests to run from $lambda_dir"
+              echo -e "${yellow} No tests to run from $lambda_dir${normal}"
             fi
           done
