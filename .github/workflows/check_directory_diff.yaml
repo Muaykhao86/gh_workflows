@@ -96,7 +96,6 @@ jobs:
             echo $dir
             if ! echo "$comma_separated_files" | grep -q "$dir"; then
               echo -e "${green}No changes found in ${normal}$dir"
-            fi
             else
               directories_changed+=("$dir")
               echo -e "${green}Changes found in ${normal}$dir"
