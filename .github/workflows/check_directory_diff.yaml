@@ -37,7 +37,6 @@ jobs:
       all_changed_files: ${{ steps.diff.outputs.csf }}
 
     steps:
-
       - name: Expose env vars
         id: vars
         run: |
