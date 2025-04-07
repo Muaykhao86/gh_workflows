@@ -37,6 +37,13 @@ jobs:
       all_changed_files: ${{ steps.diff.outputs.csf }}
 
     steps:
+
+      - name: Expose env vars
+        id: vars
+        run: |
+          echo "normal=\033[0m" >> $GITHUB_ENV
+          echo "green="\033[0;32m" >> $GITHUB_ENV
+          echo "yellow="\033[0;33m" >> $GITHUB_ENV
       # Checkout the code
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -47,10 +54,6 @@ jobs:
       - name: Determine Changed Files
         id: diff
         run: |
-          normal="\033[0m"
-          green="\033[0;32m"
-          yellow="\033[0;33m"
-          
           BASE_BRANCH_SHA=${{ github.event.pull_request.base.sha }}
           BASE_BRANCH_REF=${{ github.event.pull_request.base.ref }}
           HEAD_BRANCH_SHA=${{ github.event.pull_request.head.sha }}
@@ -83,9 +86,6 @@ jobs:
           comma_separated_files: ${{ steps.diff.outputs.csf }}
           search_directories:  ${{ inputs.dirs }}
         run: |
-          normal="\033[0m"
-          green="\033[0;32m"
-          
           echo -e "${green}Filtering files for the dirs: ${normal}$search_directories"          
           
           # Loop the csv string
@@ -112,8 +112,6 @@ jobs:
           unique_extensions: ${{ steps.diff.outputs.ext }}
           search_extension: ${{ inputs.extension }}
         run: |
-          normal="\033[0m"
-          green="\033[0;32m"
           
           echo -e "${green}Filtering files for the extension: ${normal}$search_extension"
 
