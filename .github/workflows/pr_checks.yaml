@@ -144,7 +144,7 @@ jobs:
           CHANGED_FILES="${{ needs.check_dirs_changes.outputs.all_changed_files }}"
           LAMBDA_BASE_DIR="${{ needs.vars.outputs.lambda_dir }}"
           echo "Analyzing changed files for Lambda functions..."
-          echo $CHANGED_FILES
+          echo "List of files -> $CHANGED_FILES"
           
           # Create an array to store lambda directories
           old_IFS=$IFS

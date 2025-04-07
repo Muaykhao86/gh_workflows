@@ -21,7 +21,7 @@ on:
       directories_changed:
         description: "List of directories that have changed"
         value: ${{ jobs.dir-file-check.outputs.directories_changed }}
-      files: 
+      all_changed_files: 
         description: "List of files that have changed"
         value: ${{ jobs.dir-file-check.outputs.all_changed_files }}
 
