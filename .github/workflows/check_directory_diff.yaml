@@ -93,7 +93,6 @@ jobs:
           IFS=','
           directories_changed=()
           for dir in ${search_directories[@]}; do
-            echo $dir
             if ! echo "$comma_separated_files" | grep -q "$dir"; then
               echo -e "${green}No changes found in ${normal}$dir"
             else
