@@ -73,7 +73,7 @@ jobs:
           CHANGED_FILES_SINGLE_LINE=$(echo "$CHANGED_FILES" | tr '\n' ',')   # Converts newlines to commas
           CHANGED_EXTENSIONS_SINGLE_LINE=$(echo "$UNIQUE_EXTENSIONS" | tr '\n' ',')  # Converts newlines to commas
           echo "csf=${CHANGED_FILES_SINGLE_LINE%,}" >> $GITHUB_OUTPUT 
-          echo "ext=$CHANGED_EXTENSIONS_SINGLE_LINE%," >> $GITHUB_OUTPUT 
+          echo "ext=${CHANGED_EXTENSIONS_SINGLE_LINE%,}" >> $GITHUB_OUTPUT 
 
       # Filter for changes in directory
       - name: Check for Directory Changes
@@ -91,13 +91,12 @@ jobs:
           echo -e "${green}Filtering files for the dirs: ${normal}$search_directories"          
           
           # Loop the csv string
+          oldIFS=$IFS
           IFS=','
-          echo "$IFS"
           directories_changed=()
           for dir in $search_directories; do
             if ! echo "$comma_separated_files" | grep -q "$dir"; then
-              echo -e "${green}No changes found in ${normal}$dir."
-            else
+              echo -e "${green}No changes found in ${normal}$dir"
               echo -e "${green}Changes found in ${normal}$dir"
               directories_changed+=("$dir")
             fi
