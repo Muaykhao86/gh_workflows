@@ -72,8 +72,8 @@ jobs:
           # Set changed files as output in a single line so other steps can use it
           CHANGED_FILES_SINGLE_LINE=$(echo "$CHANGED_FILES" | tr '\n' ',')   # Converts newlines to commas
           CHANGED_EXTENSIONS_SINGLE_LINE=$(echo "$UNIQUE_EXTENSIONS" | tr '\n' ',')  # Converts newlines to commas
-          echo "csf=${CHANGED_FILES_SINGLE_LINE}" >> $GITHUB_OUTPUT 
-          echo "ext=$CHANGED_EXTENSIONS_SINGLE_LINE" >> $GITHUB_OUTPUT 
+          echo "csf=${CHANGED_FILES_SINGLE_LINE%,}" >> $GITHUB_OUTPUT 
+          echo "ext=$CHANGED_EXTENSIONS_SINGLE_LINE%," >> $GITHUB_OUTPUT 
 
       # Filter for changes in directory
       - name: Check for Directory Changes
@@ -120,7 +120,7 @@ jobs:
           echo -e "${green}Filtering files for the extension: ${normal}$search_extension"
 
           if ! echo "$unique_extensions" | grep -q "$search_extension"; then
-            echo -e "${green}No changes found in ${normal}$search_extension."
+            echo -e "${green}No changes found in ${normal}$search_extension"
             echo "extension_changed=false" >> $GITHUB_OUTPUT
           else
             echo -e "${green}Changes found in ${normal}$search_extension"
