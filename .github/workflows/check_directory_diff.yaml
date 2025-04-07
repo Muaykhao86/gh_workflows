@@ -41,9 +41,12 @@ jobs:
       - name: Expose env vars
         id: vars
         run: |
-          echo "normal="\033[0m"" >> $GITHUB_ENV
-          echo "green="\033[0;32m"" >> $GITHUB_ENV
-          echo "yellow="\033[0;33m"" >> $GITHUB_ENV
+          normal="\033[0m"
+          green="\033[0;32m"
+          yellow="\033[0;33m"
+          echo "normal=${normal}" >> $GITHUB_ENV
+          echo "green=${green}" >> $GITHUB_ENV
+          echo "yellow=${yellow}" >> $GITHUB_ENV
       # Checkout the code
       - name: Checkout Code
         uses: actions/checkout@v3
