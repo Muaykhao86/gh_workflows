@@ -169,7 +169,7 @@ jobs:
               # Extract the lambda function directory (assumes structure like automation/aws_lambda/function-name/*)
               lambda_dir=$(echo "$file" | awk -F/ '{print $1"/"$2"/"$3}')
               # Check if we already added this directory to the list
-              if [[ ! " ${LAMBDA_DIRS[*]} " =~ " ${lambda_dir} " ]]; then
+              if [[ ! " ${LAMBDA_DIRS[@]} " =~ " ${lambda_dir} " ]]; then
                 LAMBDA_DIRS+=("$lambda_dir")
                 echo -e "${green}Found changes in Lambda function: ${normal}${lambda_dir}"
               fi
