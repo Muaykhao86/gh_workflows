@@ -149,7 +149,6 @@ jobs:
           # Create an array to store lambda directories
           old_IFS=$IFS
           IFS=','
-          echo "$IFS"
           LAMBDA_DIRS=()
           # Extract lambda function directories
           for file in ${CHANGED_FILES[@]}; do
@@ -182,8 +181,10 @@ jobs:
           lambda_dir_count: ${{ steps.lambda_changes.outputs.count }}
         run: |
           echo "Processing ${lambda_dir_count} Lambda functions"
-          
-          for lambda_dir in ${lambda_dirs}; do
+
+          old_IFS=$IFS
+          IFS=','
+          for lambda_dir in ${lambda_dirs[@]}; do
             echo "Checking runtime for $lambda_dir"
             
             # if it has a package.json its node
